@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import './transaction.dart';
+import './models/transaction.dart';
+import './widgets/chart.dart';
+import './widgets/new_transaction.dart';
+import './widgets/transaction_list.dart';
 
 void main() => runApp(MyApp());
 
@@ -11,6 +14,23 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Expense Tracker',
+      theme: ThemeData(
+        primarySwatch: Colors.blue,
+        accentColor: Colors.blueGrey,
+        fontFamily: 'Raleway',
+        textTheme: ThemeData.light().textTheme.copyWith(
+                title: TextStyle(
+              fontFamily: 'Gupter',
+              fontSize: 18,
+            ),
+            button: TextStyle(color: Colors.white),
+            ),
+        appBarTheme: AppBarTheme(
+          textTheme: ThemeData.light().textTheme.copyWith(
+                title: TextStyle(fontFamily: 'Gupter', fontSize: 28.0),
+              ),
+        ),
+      ),
       home: MyHomePage(),
     );
   }
@@ -22,166 +42,111 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  final List<Transaction> transactions = [
-    Transaction(
-      id: 't1',
-      title: 'New Shoes',
-      amount: 50.9,
-      date: DateTime.now(),
-    ),
-    Transaction(
-      id: 't2',
-      title: 'Weekly Groceries',
-      amount: 100.0,
-      date: DateTime.now(),
-    )
+  final List<Transaction> _userTransactions = [
+    // Transaction(
+    //   id: 't1',
+    //   title: 'New Shoes',
+    //   amount: 50.9,
+    //   date: DateTime.now(),
+    // ),
+    // Transaction(
+    //   id: 't2',
+    //   title: 'Weekly Groceries',
+    //   amount: 100.0,
+    //   date: DateTime.now(),
+    // ),
   ];
 
-  final titleInput = TextEditingController();
+  List<Transaction> get _recentTransactions {
+    return _userTransactions.where((tx) {
+      return tx.date.isAfter(
+        DateTime.now().subtract(Duration(days: 7)),
+      );
+    }).toList();
+  }
 
-  final amountInput = TextEditingController();
-  final _formKey = GlobalKey<FormState>();
+  void _addNewTransaction(String txTitle, double txAmount, DateTime selectedDate) {
+    final newTX = Transaction(
+        title: txTitle,
+        amount: txAmount,
+        date: selectedDate,
+        id: DateTime.now().toString(),
+        );
+
+    setState(() {
+      _userTransactions.add(newTX);
+    });
+  }
+
+  void _startAddNewTransaction(BuildContext ctx) {
+    showModalBottomSheet(
+      context: ctx,
+      builder: (_) {
+        return GestureDetector(
+          onTap: () {},
+          child: NewTransaction(_addNewTransaction),
+          behavior: HitTestBehavior.opaque,
+        );
+      },
+    );
+  }
+
+  void _deleteTransaction(String id){
+    setState(() {
+      _userTransactions.removeWhere((tx){
+        return tx.id == id;
+      });
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        appBar: AppBar(
-          leading: IconButton(
+      appBar: AppBar(
+        actions: <Widget>[
+          IconButton(
+            color: Theme.of(context).accentColor,
+            padding: const EdgeInsets.all(2.0),
+            icon: Icon(Icons.add_circle_outline),
+            iconSize: 25.0,
             hoverColor: Colors.lightBlueAccent,
-            icon: Icon(Icons.menu),
-            iconSize: 40.0,
-            color: Colors.black,
-            onPressed: () => print('Menu pressed'),
-          ),
-          actions: <Widget>[
-            IconButton(
-              padding: const EdgeInsets.all(2.0),
-              icon: Icon(Icons.note_add),
-              iconSize: 25.0,
-              hoverColor: Colors.lightBlueAccent,
-              onPressed: () => print('Setting pressed'),
-            )
-          ],
-          centerTitle: true,
-          title: Text('Expense Tracker'),
-        ),
-        body: Column(
+            onPressed: () => _startAddNewTransaction(context),
+          )
+        ],
+        centerTitle: true,
+        title: Text('Personal Expenses'),
+      ),
+      body: SingleChildScrollView(
+        child: Column(
           mainAxisAlignment: MainAxisAlignment.start,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: <Widget>[
-            Container(
-              width: double.infinity,
-              height: 120.0,
-              child: Card(
-                color: Colors.blue[50],
-                child: Text('Chart'),
-                elevation: 5.0,
-              ),
-            ),
-            Form(
-              key: _formKey,
-              child: Card(
-                elevation: 5.0,
-                  child: Container(
-                    padding: EdgeInsets.all(10.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                children: <Widget>[
-                    TextFormField(
-                      decoration: InputDecoration(
-                        labelText: 'Title',
-                        hintText: 'Enter title',
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(5.0),),
+            _userTransactions.isEmpty
+                ? SizedBox(height: 100.0)
+                : Container(
+                    // padding: EdgeInsets.only(bottom: 10.0),
+                    width: double.infinity,
+                    height: 180.0,
+                    child: Card(
+                      color: Theme.of(context).accentColor,
+                      child: Container(
+                        padding: EdgeInsets.only(top: 10.0),
+                        child: Chart(_recentTransactions),
                       ),
-                      controller: titleInput,
-                      validator: (value) {
-                        if(value.isEmpty){
-                          return 'Title is required';
-                        }
-                      }
+                      elevation: 5.0,
                     ),
-                    Container(height: 5.0),
-                    TextFormField(
-                    
-                      decoration: InputDecoration(
-                        labelText: 'Amount',
-                        hintText: 'Enter amount',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(5.0),
-                        ),
-                      ),
-                      controller: amountInput,
-                      validator: (val) {
-                        if(val.isEmpty){
-                          return 'Amount is required';
-                        }
-                      }
-                    ),
-                    FlatButton(
-                      child: Text('Add Transaction'),
-                      textColor: Colors.blueAccent,
-                      onPressed: (){
-                        setState(() {
-                          if(_formKey.currentState.validate()){
-                          print('Saved');
-                        }
-                        });
-                      },
-                    ),
-                ],
-              ),
-                  )),
-            ),
-            Column(
-              children: transactions.map((tx) {
-                return Card(
-                  child: Row(
-                    children: <Widget>[
-                      Container(
-                        padding: EdgeInsets.all(3.0),
-                        margin: EdgeInsets.symmetric(
-                            vertical: 10.0, horizontal: 15.0),
-                        decoration: BoxDecoration(
-                          border: Border.all(
-                            color: Colors.black,
-                            width: 1.0,
-                          ),
-                          borderRadius: BorderRadius.circular(10.0),
-                        ),
-                        child: Text(
-                          // naira symbol
-                          '\u{20A6}${tx.amount}',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 20,
-                            color: Colors.blueAccent,
-                          ),
-                        ),
-                      ),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: <Widget>[
-                          Text(
-                            tx.title,
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16.0,
-                            ),
-                          ),
-                          Text(
-                            DateFormat('yyyy-MM-dd').format(tx.date),
-                            style: TextStyle(
-                              color: Colors.grey,
-                            ),
-                          ),
-                        ],
-                      )
-                    ],
                   ),
-                );
-              }).toList(),
-            ),
+                  SizedBox(height: 20.0,),
+            TransactionList(_userTransactions, _deleteTransaction),
           ],
-        ));
+        ),
+      ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
+      floatingActionButton: FloatingActionButton(
+        tooltip: 'Add expense',
+        child: Icon(Icons.add),
+        onPressed: () => _startAddNewTransaction(context),
+      ),
+    );
   }
 }
