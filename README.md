@@ -1,3 +1,3 @@
-# expense_tracker
+# Expense Tracker
 
-A daily and weekly expense planner app
+A daily and weekly expense planner & tracker app built with dart and flutter.
